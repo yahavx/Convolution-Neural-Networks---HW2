@@ -113,6 +113,8 @@ pip-selfcheck.json
 .idea/**/dictionaries
 .idea/**/shelf
 
+.idea/*
+
 # AWS User-specific
 .idea/**/aws.xml
 
@@ -185,3 +187,4 @@ fabric.properties
 # .idea
 
 desktop.ini
+condaenv.3oehgrqx.requirements.txt
