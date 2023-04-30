@@ -17,6 +17,7 @@ class MLP(Block):
     If dropout is used, a dropout layer is added after every activation
     function.
     """
+
     def __init__(self, in_features, num_classes, hidden_features=(),
                  activation='relu', dropout=0, **kw):
         super().__init__()
@@ -61,6 +62,7 @@ class ConvClassifier(nn.Module):
     The architecture is:
     [(Conv -> ReLU)*P -> MaxPool]*(N/P) -> (Linear -> ReLU)*M -> Linear
     """
+
     def __init__(self, in_size, out_classes, filters, pool_every, hidden_dims):
         """
         :param in_size: Size of input images, e.g. (C,H,W).
@@ -83,6 +85,8 @@ class ConvClassifier(nn.Module):
 
     def _make_feature_extractor(self):
         in_channels, in_h, in_w, = tuple(self.in_size)
+        self.h = in_h
+        self.w = in_w
 
         layers = []
         # TODO: Create the feature extractor part of the model:
@@ -107,16 +111,14 @@ class ConvClassifier(nn.Module):
         #  [(Conv -> ReLU)*P -> MaxPool]*(N/P) -> (Linear -> ReLU)*M -> Linear
         for i in range(N // P):
             for j in range(P):
-                layers.append(
-                    torch.nn.Conv2d(self.filters[i * P + j], self.filters[i * P + j + 1], kernel_size=kernel_size_conv,
-                                    stride=stride_conv, padding=padding_conv))
+                layers.append(nn.Conv2d(self.filters[i * P + j], self.filters[i * P + j + 1], kernel_size=kernel_size_conv,stride=stride_conv, padding=padding_conv))
                 layers.append(nn.ReLU(inplace=True))
-                self.h = ((self.h + 2 * padding_conv[0] - (kernel_size_conv[0] - 1) - 1) // stride_conv[0]) + 1
-                self.w = ((self.w + 2 * padding_conv[1] - (kernel_size_conv[1] - 1) - 1) // stride_conv[1]) + 1
+                self.h = (self.h - kernel_size_conv[0] + 2 * padding_conv[0]) // stride_conv[0] + 1  # W' = (W-F+2P)/S+1
+                self.w = (self.w - kernel_size_conv[1] + 2 * padding_conv[1]) // stride_conv[1] + 1  # H' = (H-F+2P)/S+1
 
-            layers.append(torch.nn.MaxPool2d(kernel_size=kernel_size_pool, stride=stride_pool, padding=padding_pool))
-            self.h = ((self.h + 2 * padding_pool[0] - (kernel_size_pool[0] - 1) - 1) // stride_pool[0]) + 1
-            self.w = ((self.w + 2 * padding_pool[1] - (kernel_size_pool[1] - 1) - 1) // stride_pool[1]) + 1
+            layers.append(nn.MaxPool2d(kernel_size=kernel_size_pool, stride=stride_pool, padding=padding_pool))
+            self.h = (self.h - kernel_size_pool[0] + 2 * padding_pool[0]) // stride_pool[0] + 1
+            self.w = (self.w - kernel_size_pool[1] + 2 * padding_pool[1]) // stride_pool[1] + 1
 
         self.filters.pop(0)
         # ========================
@@ -152,7 +154,7 @@ class ConvClassifier(nn.Module):
         # Extract features from the input, run the classifier on them and
         # return class scores.
         # ====== YOUR CODE: ======
-        features = self._make_feature_extractor(x)
+        features = self.feature_extractor(x)
         out = self.classifier(features)
         # ========================
         return out
@@ -169,4 +171,3 @@ class YourCodeNet(ConvClassifier):
     # ====== YOUR CODE: ======
     # raise NotImplementedError()
     # ========================
-
