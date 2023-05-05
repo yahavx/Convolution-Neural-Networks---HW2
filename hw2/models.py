@@ -40,7 +40,7 @@ class MLP(Block):
         else:
             blocks.append(Linear(in_features, hidden_features[0]))
             
-            for i in range(len(hidden_features)-1):
+            for i in range(len(hidden_features) - 1):
                 if activation is 'relu':
                     blocks.append(ReLU())
                 else:
