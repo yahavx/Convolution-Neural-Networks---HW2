@@ -17,6 +17,7 @@ class MLP(Block):
     If dropout is used, a dropout layer is added after every activation
     function.
     """
+
     def __init__(self, in_features, num_classes, hidden_features=(),
                  activation='relu', dropout=0, **kw):
         super().__init__()
@@ -83,14 +84,15 @@ class ConvClassifier(nn.Module):
     The architecture is:
     [(Conv -> ReLU)*P -> MaxPool]*(N/P) -> (Linear -> ReLU)*M -> Linear
     """
+
     def __init__(self, in_size, out_classes, filters, pool_every, hidden_dims):
         """
         :param in_size: Size of input images, e.g. (C,H,W).
         :param out_classes: Number of classes to output in the final layer.
-        :param filters: A list of of length N containing the number of
+        :param filters: A list of length N containing the number of
             filters in each conv layer.
         :param pool_every: P, the number of conv layers before each max-pool.
-        :param hidden_dims: List of of length M containing hidden dimensions of
+        :param hidden_dims: List of length M containing hidden dimensions of
             each Linear layer (not including the output layer).
         """
         super().__init__()
@@ -105,6 +107,8 @@ class ConvClassifier(nn.Module):
 
     def _make_feature_extractor(self):
         in_channels, in_h, in_w, = tuple(self.in_size)
+        self.h = in_h
+        self.w = in_w
 
         layers = []
         # TODO: Create the feature extractor part of the model:
@@ -112,8 +116,33 @@ class ConvClassifier(nn.Module):
         # Use only dimension-preserving 3x3 convolutions. Apply 2x2 Max
         # Pooling to reduce dimensions.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        N = len(self.filters)
+        P = self.pool_every
+        self.filters.insert(0, in_channels)  # at the beginning, apply filter of each channel
 
+        # 3x3 convolutions settings
+        kernel_size_conv = (3, 3)
+        stride_conv = (1, 1)
+        padding_conv = (1, 1)
+
+        # 2x2 max pooling settings
+        kernel_size_pool = (2, 2)
+        stride_pool = (2, 2)
+        padding_pool = (0, 0)
+
+        #  [(Conv -> ReLU)*P -> MaxPool]*(N/P) -> (Linear -> ReLU)*M -> Linear
+        for i in range(N // P):
+            for j in range(P):
+                layers.append(nn.Conv2d(self.filters[i * P + j], self.filters[i * P + j + 1], kernel_size=kernel_size_conv,stride=stride_conv, padding=padding_conv))
+                layers.append(nn.ReLU(inplace=True))
+                self.h = (self.h - kernel_size_conv[0] + 2 * padding_conv[0]) // stride_conv[0] + 1  # W' = (W-F+2P)/S+1
+                self.w = (self.w - kernel_size_conv[1] + 2 * padding_conv[1]) // stride_conv[1] + 1  # H' = (H-F+2P)/S+1
+
+            layers.append(nn.MaxPool2d(kernel_size=kernel_size_pool, stride=stride_pool, padding=padding_pool))
+            self.h = (self.h - kernel_size_pool[0] + 2 * padding_pool[0]) // stride_pool[0] + 1
+            self.w = (self.w - kernel_size_pool[1] + 2 * padding_pool[1]) // stride_pool[1] + 1
+
+        self.filters.pop(0)
         # ========================
         seq = nn.Sequential(*layers)
         return seq
@@ -127,7 +156,17 @@ class ConvClassifier(nn.Module):
         # You'll need to calculate the number of features first.
         # The last Linear layer should have an output dimension of out_classes.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        layers.append(nn.Flatten())
+        M = len(self.hidden_dims)
+
+        self.hidden_dims.insert(0, int(self.filters[-1] * self.h * self.w))
+
+        for i in range(M):
+            layers.append(nn.Linear(self.hidden_dims[i], self.hidden_dims[i + 1]))
+            layers.append(nn.ReLU(inplace=True))
+
+        layers.append(nn.Linear(self.hidden_dims[M], self.out_classes))
+        self.hidden_dims.pop(0)
         # ========================
         seq = nn.Sequential(*layers)
         return seq
@@ -137,7 +176,8 @@ class ConvClassifier(nn.Module):
         # Extract features from the input, run the classifier on them and
         # return class scores.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        features = self.feature_extractor(x)
+        out = self.classifier(features)
         # ========================
         return out
 
@@ -151,6 +191,5 @@ class YourCodeNet(ConvClassifier):
     # For example, add batchnorm, dropout, skip connections, change conv
     # filter sizes etc.
     # ====== YOUR CODE: ======
-    raise NotImplementedError()
+    # raise NotImplementedError()
     # ========================
-

@@ -55,14 +55,13 @@ class Trainer(abc.ABC):
         actual_num_epochs = 0
         train_loss, train_acc, test_loss, test_acc = [], [], [], []
 
-        best_acc = None
         epochs_without_improvement = 0
 
         for epoch in range(num_epochs):
             verbose = False  # pass this to train/test_epoch.
-            if epoch % print_every == 0 or epoch == num_epochs-1:
+            if epoch % print_every == 0 or epoch == num_epochs - 1:
                 verbose = True
-            self._print(f'--- EPOCH {epoch+1}/{num_epochs} ---', verbose)
+            self._print(f'--- EPOCH {epoch + 1}/{num_epochs} ---', verbose)
 
             # TODO: Train & evaluate for one epoch
             # - Use the train/test_epoch methods.
@@ -72,7 +71,24 @@ class Trainer(abc.ABC):
             # - Optional: Implement early stopping. This is a very useful and
             #   simple regularization technique that is highly recommended.
             # ====== YOUR CODE: ======
-            raise NotImplementedError()
+            actual_num_epochs += 1
+            epoch_train_loss = self.train_epoch(dl_train)
+            epoch_test_loss = self.test_epoch(dl_test)
+            train_loss.append((sum(epoch_train_loss.losses) / len(epoch_train_loss.losses)).item())
+            test_loss.append((sum(epoch_test_loss.losses) / len(epoch_test_loss.losses)).item())
+            train_acc.append(epoch_train_loss.accuracy)
+            test_acc.append(epoch_test_loss.accuracy)
+
+            if len(test_loss) >= 2 and test_loss[-1] >= test_loss[-2]: # if last loss is larger than the previous one, then there is no improvement
+                epochs_without_improvement += 1
+            else:
+                epochs_without_improvement = 0
+                if checkpoints:
+                    torch.save(self.model, checkpoints)
+
+            if epochs_without_improvement == early_stopping:
+                print(f"early stopped the training since there is not improvement for {early_stopping} epochs")
+                break
             # ========================
 
         return FitResult(actual_num_epochs,
@@ -178,6 +194,7 @@ class Trainer(abc.ABC):
 class BlocksTrainer(Trainer):
     def __init__(self, model, loss_fn, optimizer):
         super().__init__(model, loss_fn, optimizer)
+        # self.diff = []
 
     def train_batch(self, batch) -> BatchResult:
         X, y = batch
@@ -188,7 +205,14 @@ class BlocksTrainer(Trainer):
         # - Optimize params
         # - Calculate number of correct predictions
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        self.optimizer.zero_grad()
+        z = self.model(X)
+        loss = self.loss_fn(z, y)
+        dout = self.loss_fn.backward()
+        self.model.backward(dout)
+        self.optimizer.step()
+        z = torch.argmax(z, axis=1)
+        num_correct = torch.sum(z == y)
         # ========================
 
         return BatchResult(loss, num_correct)
@@ -200,7 +224,10 @@ class BlocksTrainer(Trainer):
         # - Forward pass
         # - Calculate number of correct predictions
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        z = self.model(X)
+        loss = self.loss_fn(z, y)
+        z = torch.argmax(z, axis=1)
+        num_correct = torch.sum(z == y)
         # ========================
 
         return BatchResult(loss, num_correct)
@@ -222,7 +249,13 @@ class TorchTrainer(Trainer):
         # - Optimize params
         # - Calculate number of correct predictions
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        self.optimizer.zero_grad()  # zero the gradient buffers
+        outputs = self.model(X)
+        loss = self.loss_fn(outputs, y)
+        loss.backward()
+        self.optimizer.step()  # Does the update
+        predictions = torch.argmax(outputs, dim=1)
+        num_correct = torch.sum(predictions == y).item()  # .item work? try as is or try .data
         # ========================
 
         return BatchResult(loss, num_correct)
@@ -238,7 +271,11 @@ class TorchTrainer(Trainer):
             # - Forward pass
             # - Calculate number of correct predictions
             # ====== YOUR CODE: ======
-            raise NotImplementedError()
+            outputs = self.model(X)
+
+            predictions = torch.argmax(outputs, dim=1)
+            loss = self.loss_fn(outputs, y)
+            num_correct = torch.sum(predictions == y).item()  # .item work? try as is or try .data
             # ========================
 
         return BatchResult(loss, num_correct)

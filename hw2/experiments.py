@@ -32,7 +32,7 @@ def run_experiment(run_name, out_dir='./results', seed=None,
     :param out_dir: Where to write the output to.
     """
     if not seed:
-        seed = random.randint(0, 2**31)
+        seed = random.randint(0, 2 ** 31)
     torch.manual_seed(seed)
     if not bs_test:
         bs_test = max([bs_train // 4, 1])
@@ -56,7 +56,21 @@ def run_experiment(run_name, out_dir='./results', seed=None,
     #  for you automatically.
     fit_res = None
     # ====== YOUR CODE: ======
-    raise NotImplementedError()
+    in_size = ds_train[0][0].shape
+    out_classes = 10
+
+    dl_train = torch.utils.data.DataLoader(ds_train, bs_train, shuffle=False)
+    dl_test = torch.utils.data.DataLoader(ds_test, bs_test, shuffle=False)
+
+    filters = list(itertools.chain.from_iterable([[filter] * layers_per_block for filter in filters_per_layer]))
+
+    model = models.ConvClassifier(in_size, out_classes, filters, pool_every, hidden_dims)
+    loss_function = torch.nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr, weight_decay=reg)
+    trainer = training.TorchTrainer(model, loss_function, optimizer, device)
+
+    fit_res = trainer.fit(dl_train, dl_test, epochs, checkpoints, early_stopping, print_every=100, max_batch=batches)
+    print(f"fit_res: {fit_res}")  # TODO remove
     # ========================
 
     save_experiment(run_name, out_dir, cfg, fit_res)
