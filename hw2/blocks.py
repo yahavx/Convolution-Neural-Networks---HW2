@@ -301,7 +301,15 @@ class Dropout(Block):
         # previous blocks, this block behaves differently a according to the
         # current mode (train/test).
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        if self.training_mode:
+            mask = torch.rand(x.shape) > self.p
+            if self.p != 1:
+                mask = mask / (1.0 - self.p)
+            out = x * mask
+        else:
+            out = x
+            mask = torch.ones_like(x)
+        self.grad_cache['mask'] = mask
         # ========================
 
         return out
@@ -309,7 +317,8 @@ class Dropout(Block):
     def backward(self, dout):
         # TODO: Implement the dropout backward pass.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        mask = self.grad_cache['mask']
+        dx = mask * dout
         # ========================
 
         return dx
