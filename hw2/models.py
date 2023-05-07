@@ -183,6 +183,44 @@ class ConvClassifier(nn.Module):
 
 
 class YourCodeNet(ConvClassifier):
+    class ResidualBlock(nn.Module):
+        def __init__(self, filters, *args, **kwargs):
+
+            # filters is [in_channels, filter, out_channels ]
+            # or
+            #  [in_channels, out_channels]
+
+            super().__init__()
+            self.apply_shortcut = filters[0] != filters[-1]
+            self.shortcut = nn.Sequential(
+                nn.Conv2d(filters[0], filters[-1], kernel_size=1, stride=(1, 1)),
+                nn.BatchNorm2d(filters[-1], track_running_stats=False))
+
+            stride_conv = (1, 1)
+            kernel_size_conv = (3, 3)
+            padding_conv = (1, 1)
+
+            layers = []
+
+            for i in range(len(filters) - 1):
+                if i != 0:
+                    layers.append(nn.ReLU(inplace=True))
+
+                layers.append(torch.nn.Conv2d(filters[i], filters[i + 1], stride=stride_conv, padding=padding_conv, kernel_size=kernel_size_conv))
+                layers.append(nn.BatchNorm2d(filters[i + 1]))
+                layers.append(nn.Dropout(p=0.5))
+
+            self.block_seq = nn.Sequential(*layers)
+
+        def forward(self, x):
+            residual = x
+            if self.apply_shortcut:
+                residual = self.shortcut(x)
+            x = self.block_seq(x)
+            x += residual
+            x = F.relu(x)  # nn.ReLU(x)
+            return x
+
     def __init__(self, in_size, out_classes, filters, pool_every, hidden_dims):
         super().__init__(in_size, out_classes, filters, pool_every, hidden_dims)
 
@@ -191,5 +229,40 @@ class YourCodeNet(ConvClassifier):
     # For example, add batchnorm, dropout, skip connections, change conv
     # filter sizes etc.
     # ====== YOUR CODE: ======
-    # raise NotImplementedError()
+    def _make_feature_extractor(self):
+        in_channels, in_h, in_w, = tuple(self.in_size)
+        self.h = in_h
+        self.w = in_w
+
+        layers = []
+
+        N = len(self.filters)
+        P = self.pool_every
+        C = self.in_size[0]
+        filters = self.filters
+        filters.insert(0, C)
+
+        padding = (0, 0)
+        kernel_size = (2, 2)
+        stride = (2, 2)
+        k = 0
+
+        stride_conv = (1, 1)
+        kernel_size_conv = (3, 3)
+        padding_conv = (1, 1)
+
+        for i in range(N // P):
+            for j in range(0, P - 1, 2):
+                layers.append(YourCodeNet.ResidualBlock(filters[k:k + 3]))
+                self.h = (self.h - kernel_size_conv[0] + 2 * padding_conv[0]) // stride_conv[0] + 1  # W' = (W-F+2P)/S+1
+                self.w = (self.w - kernel_size_conv[1] + 2 * padding_conv[1]) // stride_conv[1] + 1  # H' = (H-F+2P)/S+1
+                k += 3
+
+            layers.append(torch.nn.MaxPool2d(kernel_size=kernel_size, stride=stride, padding=padding))
+            self.h = (((self.h + 2 * padding[0] - (kernel_size[0] - 1) - 1) // stride[0]) + 1)
+            self.w = (((self.w + 2 * padding[1] - (kernel_size[1] - 1) - 1) // stride[1]) + 1)
+
+        # ========================
+        seq = nn.Sequential(*layers)
+        return seq
     # ========================
