@@ -1,4 +1,4 @@
-name: hw2_env_gpu
+name: base
 channels:
   - pytorch
   - defaults

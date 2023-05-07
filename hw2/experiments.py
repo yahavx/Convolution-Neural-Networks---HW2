@@ -64,11 +64,6 @@ def run_experiment(run_name, out_dir='./results', seed=None,
 
     filters = list(itertools.chain.from_iterable([[filter] * layers_per_block for filter in filters_per_layer]))
 
-    # TODO for comparing to the above
-    filters2 = []
-    for filter in filters_per_layer:
-        filters2 += [filter] * layers_per_block
-
     model = models.ConvClassifier(in_size, out_classes, filters, pool_every, hidden_dims)
     loss_function = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr, weight_decay=reg)

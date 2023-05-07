@@ -72,10 +72,9 @@ class Linear(Block):
         self.in_features = in_features
         self.out_features = out_features
 
-        # TODO: Create the weight matrix (w) and bias vector (b).
-
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        self.w = torch.normal(mean=0.0, std=wstd, size=(out_features, in_features))
+        self.b = torch.normal(mean=0.0, std=wstd, size=(out_features,))
         # ========================
 
         self.dw = torch.zeros_like(self.w)
@@ -100,7 +99,7 @@ class Linear(Block):
         # TODO: Compute the affine transform
 
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        out = x @ self.w.T + self.b
         # ========================
 
         self.grad_cache['x'] = x
@@ -119,7 +118,9 @@ class Linear(Block):
         #   - db, the gradient of the loss with respect to b
         # You should accumulate gradients in dw and db.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        dx = dout @ self.w
+        self.dw += dout.T @ x
+        self.db += torch.ones(dout.shape[0]) @ dout
         # ========================
 
         return dx
@@ -145,7 +146,7 @@ class ReLU(Block):
 
         # TODO: Implement the ReLU operation.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        out = torch.max(torch.zeros_like(x),x)
         # ========================
 
         self.grad_cache['x'] = x
@@ -160,7 +161,7 @@ class ReLU(Block):
 
         # TODO: Implement gradient w.r.t. the input x
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        dx = dout * (x > 0).float()
         # ========================
 
         return dx
@@ -190,7 +191,8 @@ class Sigmoid(Block):
         # TODO: Implement the Sigmoid function. Save whatever you need into
         # grad_cache.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        out = 1/(1+torch.exp(-x))
+        self.grad_cache['sig_x'] = out
         # ========================
 
         return out
@@ -203,7 +205,8 @@ class Sigmoid(Block):
 
         # TODO: Implement gradient w.r.t. the input x
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        sig_x = self.grad_cache['sig_x']
+        dx = dout * sig_x * (1-sig_x)
         # ========================
 
         return dx
@@ -247,7 +250,11 @@ class CrossEntropyLoss(Block):
         # Tip: to get a different column from each row of a matrix tensor m,
         # you can index it with m[range(num_rows), list_of_cols].
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        x_y = x[range(N),y]
+        exp = torch.exp(x)
+        sum = torch.sum(exp, dim=1)
+        lce = -x_y + torch.log(sum)
+        loss = torch.mean(lce)
         # ========================
 
         self.grad_cache['x'] = x
@@ -266,7 +273,11 @@ class CrossEntropyLoss(Block):
 
         # TODO: Calculate the gradient w.r.t. the input x
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        exp_x = torch.exp(x)
+        sum_exp_x = torch.sum(exp_x, dim=1).T      
+        d = (exp_x.T / sum_exp_x).T
+        d[range(N), y] -= 1
+        dx = dout * (d / (y.shape[0]))
         # ========================
 
         return dx
@@ -324,7 +335,12 @@ class Sequential(Block):
         # TODO: Implement the forward pass by passing each block's output
         # as the input of the next.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        out = x
+        for block in self.blocks:
+            if isinstance(block, CrossEntropyLoss):
+                out = block(out, kw['y'])
+            else:
+                out = block(out)
         # ========================
 
         return out
@@ -336,7 +352,10 @@ class Sequential(Block):
         # Each block's input gradient should be the previous block's output
         # gradient. Behold the backpropagation algorithm in action!
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        next_dout = dout
+        for block in reversed(self.blocks):
+            next_dout = block.backward(next_dout)
+        din = next_dout
         # ========================
 
         return din
@@ -346,7 +365,8 @@ class Sequential(Block):
 
         # TODO: Return the parameter tuples from all blocks.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        for block in self.blocks:
+            params = params + block.params()
         # ========================
 
         return params
