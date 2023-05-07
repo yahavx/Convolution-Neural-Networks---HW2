@@ -274,7 +274,7 @@ class CrossEntropyLoss(Block):
         # TODO: Calculate the gradient w.r.t. the input x
         # ====== YOUR CODE: ======
         exp_x = torch.exp(x)
-        sum_exp_x = torch.sum(exp_x, dim=1).T      
+        sum_exp_x = torch.sum(exp_x, dim=1).T
         d = (exp_x.T / sum_exp_x).T
         d[range(N), y] -= 1
         dx = dout * (d / (y.shape[0]))
