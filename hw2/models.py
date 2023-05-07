@@ -185,13 +185,8 @@ class ConvClassifier(nn.Module):
 class YourCodeNet(ConvClassifier):
     class ResidualBlock(nn.Module):
         def __init__(self, filters, *args, **kwargs):
-
-            # filters is [in_channels, filter, out_channels ]
-            # or
-            #  [in_channels, out_channels]
-
             super().__init__()
-            self.apply_shortcut = filters[0] != filters[-1]
+            self.filters = filters
             self.shortcut = nn.Sequential(
                 nn.Conv2d(filters[0], filters[-1], kernel_size=1, stride=(1, 1)),
                 nn.BatchNorm2d(filters[-1], track_running_stats=False))
@@ -205,21 +200,22 @@ class YourCodeNet(ConvClassifier):
             for i in range(len(filters) - 1):
                 if i != 0:
                     layers.append(nn.ReLU(inplace=True))
+                    layers.append(nn.Dropout(p=0.5))
 
                 layers.append(torch.nn.Conv2d(filters[i], filters[i + 1], stride=stride_conv, padding=padding_conv, kernel_size=kernel_size_conv))
                 layers.append(nn.BatchNorm2d(filters[i + 1]))
-                layers.append(nn.Dropout(p=0.5))
 
             self.block_seq = nn.Sequential(*layers)
 
         def forward(self, x):
-            residual = x
-            if self.apply_shortcut:
+            if self.filters[0] != self.filters[-1]:
                 residual = self.shortcut(x)
-            x = self.block_seq(x)
-            x += residual
-            x = F.relu(x)  # nn.ReLU(x)
-            return x
+            else:
+                residual = x
+            out = self.block_seq(x)
+            out += residual
+            out = F.relu(out)
+            return out
 
     def __init__(self, in_size, out_classes, filters, pool_every, hidden_dims):
         super().__init__(in_size, out_classes, filters, pool_every, hidden_dims)
@@ -254,6 +250,8 @@ class YourCodeNet(ConvClassifier):
         for i in range(N // P):
             for j in range(0, P - 1, 2):
                 layers.append(YourCodeNet.ResidualBlock(filters[k:k + 3]))
+                self.h = (self.h - kernel_size_conv[0] + 2 * padding_conv[0]) // stride_conv[0] + 1  # W' = (W-F+2P)/S+1
+                self.w = (self.w - kernel_size_conv[1] + 2 * padding_conv[1]) // stride_conv[1] + 1  # H' = (H-F+2P)/S+1
                 self.h = (self.h - kernel_size_conv[0] + 2 * padding_conv[0]) // stride_conv[0] + 1  # W' = (W-F+2P)/S+1
                 self.w = (self.w - kernel_size_conv[1] + 2 * padding_conv[1]) // stride_conv[1] + 1  # H' = (H-F+2P)/S+1
                 k += 3
