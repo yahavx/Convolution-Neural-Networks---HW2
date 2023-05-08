@@ -71,7 +71,8 @@ class VanillaSGD(Optimizer):
             # Update the gradient according to regularization and then
             # update the parameters tensor.
             # ====== YOUR CODE: ======
-            raise NotImplementedError()
+            step = self.learn_rate * (dp + self.reg * p)
+            p -= step
             # ========================
 
 
@@ -90,7 +91,11 @@ class MomentumSGD(Optimizer):
 
         # TODO: Add your own initializations as needed.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        self.vs = []
+        for p, dp in params:
+            self.vs.append(torch.zeros_like(p))
+        self.idx = 0
+        self.num_params = len(params)
         # ========================
 
     def step(self):
@@ -102,7 +107,11 @@ class MomentumSGD(Optimizer):
             # update the parameters tensor based on the velocity. Don't forget
             # to include the regularization term.
             # ====== YOUR CODE: ======
-            raise NotImplementedError()
+            self.vs[self.idx] = self.momentum * self.vs[self.idx] - self.learn_rate * (dp + self.reg * p)
+            p += self.vs[self.idx]
+            self.idx += 1
+            if self.idx == self.num_params:
+                self.idx = 0
             # ========================
 
 
@@ -123,7 +132,11 @@ class RMSProp(Optimizer):
 
         # TODO: Add your own initializations as needed.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        self.rs = []
+        for p, dp in params:
+            self.rs.append(torch.zeros_like(p))
+        self.idx = 0
+        self.num_params = len(params)
         # ========================
 
     def step(self):
@@ -136,5 +149,9 @@ class RMSProp(Optimizer):
             # average of it's previous gradients. Use it to update the
             # parameters tensor.
             # ====== YOUR CODE: ======
-            raise NotImplementedError()
+            self.rs[self.idx] = self.decay * self.rs[self.idx] + (1 - self.decay) * (dp + self.reg * p) * (dp + self.reg * p)
+            p -= (self.learn_rate / (torch.sqrt(self.rs[self.idx] + self.eps))) * (dp + self.reg * p)
+            self.idx += 1
+            if self.idx == self.num_params:
+                self.idx = 0
             # ========================

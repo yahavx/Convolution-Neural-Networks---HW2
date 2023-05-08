@@ -274,7 +274,7 @@ class CrossEntropyLoss(Block):
         # TODO: Calculate the gradient w.r.t. the input x
         # ====== YOUR CODE: ======
         exp_x = torch.exp(x)
-        sum_exp_x = torch.sum(exp_x, dim=1).T      
+        sum_exp_x = torch.sum(exp_x, dim=1).T
         d = (exp_x.T / sum_exp_x).T
         d[range(N), y] -= 1
         dx = dout * (d / (y.shape[0]))
@@ -301,7 +301,15 @@ class Dropout(Block):
         # previous blocks, this block behaves differently a according to the
         # current mode (train/test).
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        if self.training_mode:
+            mask = torch.rand(x.shape) > self.p
+            if self.p != 1:
+                mask = mask / (1.0 - self.p)
+            out = x * mask
+        else:
+            out = x
+            mask = torch.ones_like(x)
+        self.grad_cache['mask'] = mask
         # ========================
 
         return out
@@ -309,7 +317,8 @@ class Dropout(Block):
     def backward(self, dout):
         # TODO: Implement the dropout backward pass.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        mask = self.grad_cache['mask']
+        dx = mask * dout
         # ========================
 
         return dx
