@@ -64,9 +64,9 @@ def run_experiment(run_name, out_dir='./results', seed=None,
 
     filters = list(itertools.chain.from_iterable([[filter] * layers_per_block for filter in filters_per_layer]))
 
-    model = models.ConvClassifier(in_size, out_classes, filters, pool_every, hidden_dims)
+    model = model_cls(in_size, out_classes, filters, pool_every, hidden_dims)
     loss_function = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr, weight_decay=reg)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=reg)
     trainer = training.TorchTrainer(model, loss_function, optimizer, device)
 
     fit_res = trainer.fit(dl_train, dl_test, epochs, checkpoints, early_stopping, print_every=100, max_batch=batches)
@@ -81,6 +81,7 @@ def save_experiment(run_name, out_dir, config, fit_res):
         config=config,
         results=fit_res._asdict()
     )
+    print("output ", output)
     output_filename = f'{os.path.join(out_dir, run_name)}.json'
     os.makedirs(out_dir, exist_ok=True)
     with open(output_filename, 'w') as f:
@@ -157,6 +158,7 @@ def parse_cli():
     return parsed
 
 
+	
 if __name__ == '__main__':
     parsed_args = parse_cli()
     subcmd_fn = parsed_args.subcmd_fn

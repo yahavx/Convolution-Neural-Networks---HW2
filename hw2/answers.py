@@ -95,11 +95,12 @@ This means that the deeper network was less overfitted and generalizes better.
 
 
 part3_q4 = r"""
-In our custom network we added skip connections to tackle the vanishing gradient that we encountered in the previous experiments.
-Also, we added some regularizations:
-1) droupouts with p=0.5
-2) batch normalization
-We used hidden_dims=[100,100] and filters_per_layer=[64,128,256,512].
+In our custom network, we added:
+1) Dropouts with p=0.5 - in order to add regularization for mitigating the overfitting
+2) Batch normalization - in order to tackle the vanishing\exploding gradient
+We used hidden_dims=[512,512] and filters_per_layer=[64,128,256,512].
 
-Overall, we still see the vanishing\exploding gradient phenomenon and therefore the test accuracy is pretty the same as in 1.3 experiment.
+Our architecture reflects its improvements in 2 main results:
+1) We were able to train the model with L>2, as opposed to the previous experiment.
+2) We achieved test accuracy of 82% which is more than 10% improvement.
 """
