@@ -249,14 +249,13 @@ class TorchTrainer(Trainer):
         # - Optimize params
         # - Calculate number of correct predictions
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
-        # self.optimizer.zero_grad()  # zero the gradient buffers
-        # outputs = self.model(X)
-        # loss = self.loss_fn(outputs, y)
-        # loss.backward()
-        # self.optimizer.step()  # Does the update
-        # predictions = torch.argmax(outputs, dim=1)
-        # num_correct = torch.sum(predictions == y).item()  # .item work? try as is or try .data
+        self.optimizer.zero_grad()  # zero the gradient buffers
+        outputs = self.model(X)
+        loss = self.loss_fn(outputs, y)
+        loss.backward()
+        self.optimizer.step()  # Does the update
+        predictions = torch.argmax(outputs, dim=1)
+        num_correct = torch.sum(predictions == y).item()
         # ========================
 
         return BatchResult(loss, num_correct)
@@ -272,12 +271,11 @@ class TorchTrainer(Trainer):
             # - Forward pass
             # - Calculate number of correct predictions
             # ====== YOUR CODE: ======
-            raise NotImplementedError()
-            # outputs = self.model(X)
-            #
-            # predictions = torch.argmax(outputs, dim=1)
-            # loss = self.loss_fn(outputs, y)
-            # num_correct = torch.sum(predictions == y).item()  # .item work? try as is or try .data
+            outputs = self.model(X)
+
+            predictions = torch.argmax(outputs, dim=1)
+            loss = self.loss_fn(outputs, y)
+            num_correct = torch.sum(predictions == y).item()
             # ========================
 
         return BatchResult(loss, num_correct)
