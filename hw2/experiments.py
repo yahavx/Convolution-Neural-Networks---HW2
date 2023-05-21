@@ -69,8 +69,7 @@ def run_experiment(run_name, out_dir='./results', seed=None,
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=reg)
     trainer = training.TorchTrainer(model, loss_function, optimizer, device)
 
-    fit_res = trainer.fit(dl_train, dl_test, epochs, checkpoints, early_stopping, print_every=100, max_batch=batches)
-    print(f"fit_res: {fit_res}")  # TODO remove
+    fit_res = trainer.fit(dl_train, dl_test, epochs, checkpoints, early_stopping, print_every=100, max_batches=batches)
     # ========================
 
     save_experiment(run_name, out_dir, cfg, fit_res)
