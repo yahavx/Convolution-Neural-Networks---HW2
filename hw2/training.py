@@ -72,8 +72,8 @@ class Trainer(abc.ABC):
             #   simple regularization technique that is highly recommended.
             # ====== YOUR CODE: ======
             actual_num_epochs += 1
-            epoch_train_loss = self.train_epoch(dl_train)
-            epoch_test_loss = self.test_epoch(dl_test)
+            epoch_train_loss = self.train_epoch(dl_train, **kw)
+            epoch_test_loss = self.test_epoch(dl_test, **kw)
             train_loss.append((sum(epoch_train_loss.losses) / len(epoch_train_loss.losses)).item())
             test_loss.append((sum(epoch_test_loss.losses) / len(epoch_test_loss.losses)).item())
             train_acc.append(epoch_train_loss.accuracy)
